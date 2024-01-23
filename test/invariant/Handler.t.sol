@@ -11,6 +11,7 @@ contract Handler is Test {
     ERC20Mock poolToken;
 
     address liquidityProvider = makeAddr("liquidityProvider");
+    address user = makeAddr("user");
 
     //* Ghost variables -> exist only in this handler contract
     uint256 startingPoolToken;
@@ -47,6 +48,39 @@ contract Handler is Test {
         weth.approve(address(pool), type(uint256).max);
 
         pool.deposit(wethAmount, 0, uint256(expectedDeltaPoolToken), uint64(block.timestamp));
+        vm.stopPrank();
+
+        // actual
+        uint256 endingPoolToken = poolToken.balanceOf(address(pool));
+        uint256 endingWeth = weth.balanceOf(address(pool));
+
+        actualDeltaPoolToken = int256(endingPoolToken) - int256(startingPoolToken);
+        actualDeltaWeth = int256(endingWeth) - int256(startingWeth);
+    }
+
+    function swapPoolTokenForWethBasedOnOutputWeth(uint256 outputWeth) public {
+        //e upper limit needed to avoid reverting tx
+        outputWeth = bound(outputWeth, 0, weth.balanceOf(address(pool)));
+        // ∆X
+        // ∆x = (β/(1-β)) * x
+        uint256 poolTokenBalance = poolToken.balanceOf(address(pool));
+        uint256 wethBalance = weth.balanceOf(address(pool));
+        uint256 poolTokenAmount = pool.getInputAmountBasedOnOutput(outputWeth, poolTokenBalance, wethBalance);
+        if (poolTokenAmount > type(uint64).max) return;
+
+        startingPoolToken = poolToken.balanceOf(address(pool));
+        startingWeth = weth.balanceOf(address(pool));
+
+        expectedDeltaPoolToken = int256(pool.getPoolTokensToDepositBasedOnWeth(outputWeth));
+        expectedDeltaWeth = int256(-1) * int256(outputWeth);
+
+        if (poolToken.balanceOf(user) < poolTokenAmount) {
+            poolToken.mint(user, poolTokenAmount - poolToken.balanceOf(user) + 1);
+        }
+
+        vm.startPrank(user);
+        poolToken.approve(address(pool), type(uint256).max);
+        pool.swapExactOutput(poolToken, weth, outputWeth, uint64(block.timestamp));
         vm.stopPrank();
 
         // actual

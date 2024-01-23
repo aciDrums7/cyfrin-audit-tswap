@@ -233,9 +233,9 @@ contract TSwapPool is ERC20 {
     }
 
     function getInputAmountBasedOnOutput(
-        uint256 outputAmount,
-        uint256 inputReserves,
-        uint256 outputReserves
+        uint256 outputAmount, //* aka WETH to deposit
+        uint256 inputReserves, //* aka poolToken balance
+        uint256 outputReserves //* aka WETH balance
     )
         public
         pure
@@ -243,6 +243,13 @@ contract TSwapPool is ERC20 {
         revertIfZero(outputReserves)
         returns (uint256 inputAmount)
     {
+        // x * y = (x + ∆x) * (y - ∆y)
+        // x * y = (x + ∆x) * (y - outputAmount)
+        // x * y = x*y - x*outputAmount + ∆x*y - ∆x*outputAmount
+        // x*outputAmount = ∆x*y - ∆x*outputAmount
+        // inputReserves * outputAmount = inputAmount(outputReserves - outputAmount)
+        //* (inputReserves * outputAmount) / (outputReserves - outputAmount) = inputAmount -> poolTokenAmount
+        // plus fees... ignore them for now
         return ((inputReserves * outputAmount) * 10000) / ((outputReserves - outputAmount) * 997);
     }
 
@@ -270,7 +277,7 @@ contract TSwapPool is ERC20 {
         _swap(inputToken, inputAmount, outputToken, outputAmount);
     }
 
-    /*
+    /**
      * @notice figures out how much you need to input based on how much
      * output you want to receive.
      *
@@ -280,8 +287,8 @@ contract TSwapPool is ERC20 {
      * @param inputToken ERC20 token to pull from caller
      * @param outputToken ERC20 token to send to caller
      * @param outputAmount The exact amount of tokens to send to caller
-     * @audit-info missing `deadline` param in natspec
      */
+    // @audit-info missing `deadline` param in natspec
     function swapExactOutput(
         IERC20 inputToken,
         IERC20 outputToken,

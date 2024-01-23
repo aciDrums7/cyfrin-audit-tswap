@@ -39,7 +39,7 @@ contract Invariant is StdInvariant, Test {
     }
 
     function statefulFuzz_ConstantProductFormulaStaysTheSame() public {
-        // assert() // ?????
+        // assert() what?
         // The change in the pool size of WETH should follow this equation:
         // ∆x = (β/(1-β)) * x
         // ??????
