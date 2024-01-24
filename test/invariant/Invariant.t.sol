@@ -49,7 +49,7 @@ contract Invariant is StdInvariant, Test {
         targetSelector(FuzzSelector({ addr: address(handler), selectors: selectors }));
     }
 
-    function statefulFuzz_ConstantProductFormulaStaysTheSame() public {
+    function statefulFuzz_ConstantProductFormulaStaysTheSameForPoolToken() public {
         // assert() what?
         // The change in the pool size of WETH should follow this equation:
         // ∆x = (β/(1-β)) * x
@@ -58,5 +58,15 @@ contract Invariant is StdInvariant, Test {
         // actual delta X == ∆x = (β/(1-β)) * x
         assert(handler.actualDeltaPoolToken() == handler.expectedDeltaPoolToken());
         // assert(handler.actualDeltaWeth() == handler.expectedDeltaWeth());
+    }
+
+    function statefulFuzz_ConstantProductFormulaStaysTheSameForWeth() public {
+        // assert() what?
+        // The change in the pool size of WETH should follow this equation:
+        // ∆x = (β/(1-β)) * x
+        // ??????
+        // In a handler
+        // actual delta X == ∆x = (β/(1-β)) * x
+        assert(handler.actualDeltaWeth() == handler.expectedDeltaWeth());
     }
 }
