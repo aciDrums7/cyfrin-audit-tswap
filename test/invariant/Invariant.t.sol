@@ -57,5 +57,6 @@ contract Invariant is StdInvariant, Test {
         // In a handler
         // actual delta X == ∆x = (β/(1-β)) * x
         assert(handler.actualDeltaPoolToken() == handler.expectedDeltaPoolToken());
+        // assert(handler.actualDeltaWeth() == handler.expectedDeltaWeth());
     }
 }

@@ -32,7 +32,8 @@ contract Handler is Test {
     function deposit(uint256 wethAmount) public {
         // let's make sure it's a 'reasonable' amount
         // avoid weird overflow errors
-        wethAmount = bound(wethAmount, 0, type(uint64).max);
+        uint256 minWeth = pool.getMinimumWethDepositAmount();
+        wethAmount = bound(wethAmount, minWeth, type(uint64).max);
 
         startingPoolToken = poolToken.balanceOf(address(pool));
         startingWeth = weth.balanceOf(address(pool));
@@ -60,18 +61,22 @@ contract Handler is Test {
 
     function swapPoolTokenForWethBasedOnOutputWeth(uint256 outputWeth) public {
         //e upper limit needed to avoid reverting tx
-        outputWeth = bound(outputWeth, 0, weth.balanceOf(address(pool)));
+        uint256 minWeth = pool.getMinimumWethDepositAmount();
+        outputWeth = bound(outputWeth, minWeth, weth.balanceOf(address(pool)));
         // ∆X
         // ∆x = (β/(1-β)) * x
         uint256 poolTokenBalance = poolToken.balanceOf(address(pool));
         uint256 wethBalance = weth.balanceOf(address(pool));
+
+        // If these two values are the same, we will divide by 0
+        if (wethBalance == outputWeth) return;
         uint256 poolTokenAmount = pool.getInputAmountBasedOnOutput(outputWeth, poolTokenBalance, wethBalance);
         if (poolTokenAmount > type(uint64).max) return;
 
         startingPoolToken = poolToken.balanceOf(address(pool));
         startingWeth = weth.balanceOf(address(pool));
 
-        expectedDeltaPoolToken = int256(pool.getPoolTokensToDepositBasedOnWeth(outputWeth));
+        expectedDeltaPoolToken = int256(poolTokenAmount);
         expectedDeltaWeth = int256(-1) * int256(outputWeth);
 
         if (poolToken.balanceOf(user) < poolTokenAmount) {
