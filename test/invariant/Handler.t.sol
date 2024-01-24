@@ -16,10 +16,10 @@ contract Handler is Test {
     //* Ghost variables -> exist only in this handler contract
     uint256 startingPoolToken;
     uint256 startingWeth;
-    int256 expectedDeltaPoolToken;
-    int256 expectedDeltaWeth;
-    int256 actualDeltaPoolToken;
-    int256 actualDeltaWeth;
+    int256 public expectedDeltaPoolToken;
+    int256 public expectedDeltaWeth;
+    int256 public actualDeltaPoolToken;
+    int256 public actualDeltaWeth;
 
     constructor(TSwapPool _pool) {
         pool = _pool;

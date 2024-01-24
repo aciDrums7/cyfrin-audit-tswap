@@ -6,6 +6,7 @@ import { StdInvariant } from "forge-std/StdInvariant.sol";
 import { ERC20Mock } from "../mocks/ERC20Mock.sol";
 import { PoolFactory } from "../../src/PoolFactory.sol";
 import { TSwapPool } from "../../src/TSwapPool.sol";
+import { Handler } from "../invariant/Handler.t.sol";
 
 contract Invariant is StdInvariant, Test {
     // these pools have 2 assets
@@ -15,6 +16,8 @@ contract Invariant is StdInvariant, Test {
     // We are gonna need the contracts
     PoolFactory factory;
     TSwapPool pool; //* poolToken / WETH
+
+    Handler handler;
 
     int256 constant STARTING_POOL_TOKEN = 100e18; //* Starting ERC20 / poolToken
     int256 constant STARTING_WETH = 50e18; //* Starting WETH
@@ -36,6 +39,14 @@ contract Invariant is StdInvariant, Test {
         pool.deposit(
             uint256(STARTING_WETH), uint256(STARTING_WETH), uint256(STARTING_POOL_TOKEN), uint64(block.timestamp)
         );
+
+        handler = new Handler(pool);
+
+        targetContract(address(handler));
+        bytes4[] memory selectors = new bytes4[](2);
+        selectors[0] = Handler.deposit.selector;
+        selectors[1] = Handler.swapPoolTokenForWethBasedOnOutputWeth.selector;
+        targetSelector(FuzzSelector({ addr: address(handler), selectors: selectors }));
     }
 
     function statefulFuzz_ConstantProductFormulaStaysTheSame() public {
@@ -45,5 +56,6 @@ contract Invariant is StdInvariant, Test {
         // ??????
         // In a handler
         // actual delta X == ∆x = (β/(1-β)) * x
+        assert(handler.actualDeltaPoolToken() == handler.expectedDeltaPoolToken());
     }
 }
