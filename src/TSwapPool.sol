@@ -109,6 +109,7 @@ contract TSwapPool is ERC20 {
         returns (uint256 liquidityTokensToMint)
     {
         if (wethToDeposit < MINIMUM_WETH_LIQUIDITY) {
+            // @audit-info MINIMUM_WETH_LIQUIDITY is a constant and therefore not required to be emitted
             revert TSwapPool__WethDepositAmountTooLow(MINIMUM_WETH_LIQUIDITY, wethToDeposit);
         }
         if (totalLiquidityTokenSupply() > 0) {
@@ -131,12 +132,19 @@ contract TSwapPool is ERC20 {
             // (wethReserves + wethToDeposit)  = wethReserves * poolTokensToDeposit
             // (wethReserves + wethToDeposit) / wethReserves  =  poolTokensToDeposit
             uint256 poolTokensToDeposit = getPoolTokensToDepositBasedOnWeth(wethToDeposit);
+            //^ if we calculate more poolTokens to deposit than the one specified by the user with the
+            // `maximumPoolTokensToDeposit`
+            //^ parameter, then we revert
             if (maximumPoolTokensToDeposit < poolTokensToDeposit) {
                 revert TSwapPool__MaxPoolTokenDepositTooHigh(maximumPoolTokensToDeposit, poolTokensToDeposit);
             }
 
             // We do the same thing for liquidity tokens. Similar math.
+            //* 10 WETH * 100 LP / 100 WETH
+            //* 10 LP
             liquidityTokensToMint = (wethToDeposit * totalLiquidityTokenSupply()) / wethReserves;
+            //* deposit 10 WETH -> 10% of the LP tokens
+            //* deposit 10 WETH -> 2%, revert
             if (liquidityTokensToMint < minimumLiquidityTokensToMint) {
                 revert TSwapPool__MinLiquidityTokensToMintTooLow(minimumLiquidityTokensToMint, liquidityTokensToMint);
             }
@@ -145,6 +153,8 @@ contract TSwapPool is ERC20 {
             // This will be the "initial" funding of the protocol. We are starting from blank here!
             // We just have them send the tokens in, and we mint liquidity tokens based on the weth
             _addLiquidityMintAndTransfer(wethToDeposit, maximumPoolTokensToDeposit, wethToDeposit);
+
+            // @audit-info it would be better if this was before the `_addLiquidityMintAndTransfer` call to follow CEI
             liquidityTokensToMint = wethToDeposit;
         }
     }
@@ -160,7 +170,12 @@ contract TSwapPool is ERC20 {
     )
         private
     {
+        //^ follows CEI
         _mint(msg.sender, liquidityTokensToMint);
+        // @audit-low this is backwards! Should be
+        // (msg.sender, wethToDeposit, poolTokensToDeposit);
+        // IMPACT: LOW - protocol is giving the wrong return/information
+        // LIKELIHOOD: HIGH
         emit LiquidityAdded(msg.sender, poolTokensToDeposit, wethToDeposit);
 
         // Interactions
@@ -375,7 +390,7 @@ contract TSwapPool is ERC20 {
     function getPoolTokensToDepositBasedOnWeth(uint256 wethToDeposit) public view returns (uint256) {
         uint256 poolTokenReserves = i_poolToken.balanceOf(address(this));
         uint256 wethReserves = i_wethToken.balanceOf(address(this));
-        //* (∆y * X) / Y = ∆x
+        //^ (∆y * X) / Y = ∆x
         return (wethToDeposit * poolTokenReserves) / wethReserves;
     }
 
