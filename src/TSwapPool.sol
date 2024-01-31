@@ -335,6 +335,7 @@ contract TSwapPool is ERC20 {
         //^ similar to a 'Fee on transfer' token, but in reverse
         if (swap_count >= SWAP_COUNT_MAX) {
             swap_count = 0;
+            // @audit not following CEII, possible reentrancy
             outputToken.safeTransfer(msg.sender, 1_000_000_000_000_000_000);
         }
         emit Swap(msg.sender, inputToken, inputAmount, outputToken, outputAmount);
