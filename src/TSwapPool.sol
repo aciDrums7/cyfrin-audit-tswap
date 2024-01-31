@@ -40,6 +40,7 @@ contract TSwapPool is ERC20 {
     /*//////////////////////////////////////////////////////////////
                                  EVENTS
     //////////////////////////////////////////////////////////////*/
+    // @audit-info 3 parameters should be indexed
     event LiquidityAdded(address indexed liquidityProvider, uint256 wethDeposited, uint256 poolTokensDeposited);
     event LiquidityRemoved(address indexed liquidityProvider, uint256 wethWithdrawn, uint256 poolTokensWithdrawn);
     event Swap(address indexed swapper, IERC20 tokenIn, uint256 amountTokenIn, IERC20 tokenOut, uint256 amountTokenOut);
@@ -226,8 +227,10 @@ contract TSwapPool is ERC20 {
         // totalPoolTokensOfPool) + (wethToDeposit * poolTokensToDeposit) = k
         // (totalWethOfPool * totalPoolTokensOfPool) + (wethToDeposit * totalPoolTokensOfPool) = k - (totalWethOfPool *
         // poolTokensToDeposit) - (wethToDeposit * poolTokensToDeposit)
+        // @audit-info magic numbers
         uint256 inputAmountMinusFee = inputAmount * 997;
         uint256 numerator = inputAmountMinusFee * outputReserves;
+        // @audit-info magic numbers
         uint256 denominator = (inputReserves * 1000) + inputAmountMinusFee;
         return numerator / denominator;
     }
@@ -250,9 +253,11 @@ contract TSwapPool is ERC20 {
         // inputReserves * outputAmount = inputAmount(outputReserves - outputAmount)
         //* (inputReserves * outputAmount) / (outputReserves - outputAmount) = inputAmount -> poolTokenAmount
         // plus fees... ignore them for now
+        // @audit-info magic numbers
         return ((inputReserves * outputAmount) * 10000) / ((outputReserves - outputAmount) * 997);
     }
 
+    // @audit-info this should be external
     function swapExactInput(
         IERC20 inputToken,
         uint256 inputAmount,
@@ -336,6 +341,7 @@ contract TSwapPool is ERC20 {
         if (swap_count >= SWAP_COUNT_MAX) {
             swap_count = 0;
             // @audit not following CEII, possible reentrancy
+            // @audit-info magic numbers
             outputToken.safeTransfer(msg.sender, 1_000_000_000_000_000_000);
         }
         emit Swap(msg.sender, inputToken, inputAmount, outputToken, outputAmount);
@@ -379,12 +385,14 @@ contract TSwapPool is ERC20 {
     }
 
     function getPriceOfOneWethInPoolTokens() external view returns (uint256) {
+        // @audit-info magic numbers
         return getOutputAmountBasedOnInput(
             1e18, i_wethToken.balanceOf(address(this)), i_poolToken.balanceOf(address(this))
         );
     }
 
     function getPriceOfOnePoolTokenInWeth() external view returns (uint256) {
+        // @audit-info magic numbers
         return getOutputAmountBasedOnInput(
             1e18, i_poolToken.balanceOf(address(this)), i_wethToken.balanceOf(address(this))
         );
