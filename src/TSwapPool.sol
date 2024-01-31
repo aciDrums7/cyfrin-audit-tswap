@@ -97,6 +97,11 @@ contract TSwapPool is ERC20 {
         uint256 wethToDeposit,
         uint256 minimumLiquidityTokensToMint,
         uint256 maximumPoolTokensToDeposit,
+        // @audit deadline not being used
+        // if someone sets a deadline, let's say, next block
+        // they could still deposit!!!
+        // IMPACT: HIGH a user who expects a deposit to fail, will go through. Severe disruption of functionality
+        // LIKELIHOOD: HIGH ALWAYS HAPPENING!!!
         uint64 deadline
     )
         external
@@ -108,6 +113,7 @@ contract TSwapPool is ERC20 {
         }
         if (totalLiquidityTokenSupply() > 0) {
             uint256 wethReserves = i_wethToken.balanceOf(address(this));
+            // @audit-gas don't need this line
             uint256 poolTokenReserves = i_poolToken.balanceOf(address(this));
             // Our invariant says weth, poolTokens, and liquidity tokens must always have the same ratio after the
             // initial deposit
@@ -269,7 +275,12 @@ contract TSwapPool is ERC20 {
         public
         revertIfZero(inputAmount)
         revertIfDeadlinePassed(deadline)
-        returns (uint256 output)
+        returns (
+            // @audit-low
+            // IMPACT: LOW - protocol is giving the wrong return
+            // LIKELIHOOD: HIGH - always the same
+            uint256 output
+        )
     {
         uint256 inputReserves = inputToken.balanceOf(address(this));
         uint256 outputReserves = outputToken.balanceOf(address(this));
