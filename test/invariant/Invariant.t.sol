@@ -19,8 +19,8 @@ contract Invariant is StdInvariant, Test {
 
     Handler handler;
 
-    int256 constant STARTING_POOL_TOKEN = 100e18; //* Starting ERC20 / poolToken
-    int256 constant STARTING_WETH = 50e18; //* Starting WETH
+    int256 constant STARTING_POOL_TOKEN = 100e18; //^ Starting ERC20 / poolToken
+    int256 constant STARTING_WETH = 50e18; //^ Starting WETH
 
     function setUp() public {
         weth = new ERC20Mock();
@@ -49,7 +49,7 @@ contract Invariant is StdInvariant, Test {
         targetSelector(FuzzSelector({ addr: address(handler), selectors: selectors }));
     }
 
-    function statefulFuzz_ConstantProductFormulaStaysTheSameForPoolToken() public {
+    function statefulFuzz_ConstantProductFormulaStaysTheSameForPoolToken() public view {
         // assert() what?
         // The change in the pool size of WETH should follow this equation:
         // ∆x = (β/(1-β)) * x
@@ -57,10 +57,9 @@ contract Invariant is StdInvariant, Test {
         // In a handler
         // actual delta X == ∆x = (β/(1-β)) * x
         assert(handler.actualDeltaPoolToken() == handler.expectedDeltaPoolToken());
-        // assert(handler.actualDeltaWeth() == handler.expectedDeltaWeth());
     }
 
-    function statefulFuzz_ConstantProductFormulaStaysTheSameForWeth() public {
+    function statefulFuzz_ConstantProductFormulaStaysTheSameForWeth() public view {
         // assert() what?
         // The change in the pool size of WETH should follow this equation:
         // ∆x = (β/(1-β)) * x

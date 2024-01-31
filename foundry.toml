@@ -6,7 +6,7 @@ solc = "0.8.20"
 remappings = ['@openzeppelin/contracts=lib/openzeppelin-contracts/contracts']
 
 [fuzz]
-seed = "0x3"
+seed = "0x1"
 
 [invariant]
 runs = 1000
