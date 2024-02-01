@@ -294,11 +294,11 @@ contract TSwapPool is ERC20 {
     // @audit-info this should be external
     // @audit-info where's the natspec???
     function swapExactInput(
-        IERC20 inputToken,
-        uint256 inputAmount,
-        IERC20 outputToken,
-        uint256 minOutputAmount,
-        uint64 deadline
+        IERC20 inputToken, // input token to swap: ie DAI
+        uint256 inputAmount, // input token amount
+        IERC20 outputToken, // output token to swap: ie WETH
+        uint256 minOutputAmount, // minimum output amount expected to receive
+        uint64 deadline // deadline for when the transaction should expire
     )
         public
         revertIfZero(inputAmount)
