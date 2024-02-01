@@ -334,10 +334,12 @@ contract TSwapPool is ERC20 {
      * @param outputAmount The exact amount of tokens to send to caller
      */
     // @audit-info missing `deadline` param in natspec
+    //? why are we not getting the maximum input, similarly to `swapExactInput`?
     function swapExactOutput(
         IERC20 inputToken,
         IERC20 outputToken,
         uint256 outputAmount,
+        // uint256 maxInputAmount
         uint64 deadline
     )
         public
@@ -350,6 +352,11 @@ contract TSwapPool is ERC20 {
 
         inputAmount = getInputAmountBasedOnOutput(outputAmount, inputReserves, outputReserves);
 
+        // @audit no slippage protection! need a max input amount
+        // MEV attack
+        // I want 10 output WETH, and my input is DAI
+        // send the transaction... but the pool get a MASSIVE transaction that changes the price
+        // 10 output WETH -> 10_000_000_000 input DAI
         _swap(inputToken, inputAmount, outputToken, outputAmount);
     }
 
