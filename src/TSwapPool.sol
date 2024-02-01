@@ -97,7 +97,7 @@ contract TSwapPool is ERC20 {
         uint256 wethToDeposit,
         uint256 minimumLiquidityTokensToMint,
         uint256 maximumPoolTokensToDeposit,
-        // @audit deadline not being used
+        // @audit-high deadline not being used
         // if someone sets a deadline, let's say, next block
         // they could still deposit!!!
         // IMPACT: HIGH a user who expects a deposit to fail, will go through. Severe disruption of functionality
@@ -172,8 +172,7 @@ contract TSwapPool is ERC20 {
     {
         //^ follows CEI
         _mint(msg.sender, liquidityTokensToMint);
-        // @audit-low this is backwards! Should be
-        // (msg.sender, wethToDeposit, poolTokensToDeposit);
+        // @audit-low this is backwards! Should be: (msg.sender, wethToDeposit, poolTokensToDeposit);
         // IMPACT: LOW - protocol is giving the wrong return/information
         // LIKELIHOOD: HIGH
         emit LiquidityAdded(msg.sender, poolTokensToDeposit, wethToDeposit);
@@ -185,6 +184,7 @@ contract TSwapPool is ERC20 {
 
     /// @notice Removes liquidity from the pool
     /// @param liquidityTokensToBurn The number of liquidity tokens the user wants to burn
+    //? this minValues seems weird now, but will make sense when explaining MEV
     /// @param minWethToWithdraw The minimum amount of WETH the user wants to withdraw
     /// @param minPoolTokensToWithdraw The minimum amount of pool tokens the user wants to withdraw
     /// @param deadline The deadline for the transaction to be completed by
@@ -201,6 +201,9 @@ contract TSwapPool is ERC20 {
         revertIfZero(minPoolTokensToWithdraw)
     {
         // We do the same math as above
+        //* 100 total LP tokens -> 10 = 10%
+        //* 10% WETH
+        //* 10% poolTokens
         uint256 wethToWithdraw =
             (liquidityTokensToBurn * i_wethToken.balanceOf(address(this))) / totalLiquidityTokenSupply();
         uint256 poolTokensToWithdraw =
@@ -213,6 +216,8 @@ contract TSwapPool is ERC20 {
             revert TSwapPool__OutputTooLow(poolTokensToWithdraw, minPoolTokensToWithdraw);
         }
 
+        //? isn't this an external call? NO
+        //^ we're burning the LP tokens that this contract mints
         _burn(msg.sender, liquidityTokensToBurn);
         emit LiquidityRemoved(msg.sender, wethToWithdraw, poolTokensToWithdraw);
 
@@ -250,6 +255,7 @@ contract TSwapPool is ERC20 {
         // (totalWethOfPool * totalPoolTokensOfPool) + (wethToDeposit * totalPoolTokensOfPool) = k - (totalWethOfPool *
         // poolTokensToDeposit) - (wethToDeposit * poolTokensToDeposit)
         // @audit-info magic numbers
+        //^ 0.3% fee
         uint256 inputAmountMinusFee = inputAmount * 997;
         uint256 numerator = inputAmountMinusFee * outputReserves;
         // @audit-info magic numbers
@@ -276,10 +282,17 @@ contract TSwapPool is ERC20 {
         //* (inputReserves * outputAmount) / (outputReserves - outputAmount) = inputAmount -> poolTokenAmount
         // plus fees... ignore them for now
         // @audit-info magic numbers
-        return ((inputReserves * outputAmount) * 10000) / ((outputReserves - outputAmount) * 997);
+
+        // 997 / 10_000
+        // 90.03 % fee?!?
+        // @audit-high wrong number, enormous fee
+        // IMPACT: HIGH -> users are charged way too much
+        // LIKELIHOODF: HIGH -> `swapExactOutput` is one of the main swapping functions!!
+        return ((inputReserves * outputAmount) * 10_000) / ((outputReserves - outputAmount) * 997);
     }
 
     // @audit-info this should be external
+    // @audit-info where's the natspec???
     function swapExactInput(
         IERC20 inputToken,
         uint256 inputAmount,
@@ -362,12 +375,12 @@ contract TSwapPool is ERC20 {
             revert TSwapPool__InvalidToken();
         }
 
-        // @audit breaks protocol invariant!!!
+        // @audit-high breaks protocol invariant!!!
         swap_count++;
         //^ similar to a 'Fee on transfer' token, but in reverse
         if (swap_count >= SWAP_COUNT_MAX) {
             swap_count = 0;
-            // @audit not following CEII, possible reentrancy
+            // @audit-high not following CEII, possible reentrancy
             // @audit-info magic numbers
             outputToken.safeTransfer(msg.sender, 1_000_000_000_000_000_000);
         }
