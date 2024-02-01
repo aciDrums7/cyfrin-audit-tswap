@@ -366,6 +366,7 @@ contract TSwapPool is ERC20 {
      * @return wethAmount amount of WETH received by caller
      */
     function sellPoolTokens(uint256 poolTokenAmount) external returns (uint256 wethAmount) {
+        // @audit this is wrong!!! We should call `swapExactInput`
         return swapExactOutput(i_poolToken, i_wethToken, poolTokenAmount, uint64(block.timestamp));
     }
 
